@@ -1,0 +1,15 @@
+:root {
+    color-scheme: only dark !important;
+
+    --background: #0d0d0d;
+    --border: #31363F;
+    --color: #d8d8d8;
+    --highlight: #76ABAE;
+}
+
+/* More Chromium colors
+--background: rgb(32, 33, 36);
+--border: rgb(154, 160, 166);
+--color: variant rgb(232, 234, 237);
+--highlight: rgb(138, 180, 248);
+*/
