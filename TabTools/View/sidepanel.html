@@ -2,56 +2,11 @@
 <html>
 
 <head>
-  <title>My Sidepanel</title>
-  <style>
-    @import url("./variables.css");
-
-    body {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    button {
-      font-size: 16px;
-      height: 50px;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      body {
-        color: var(--color);
-        background: var(--background);
-      }
-
-      button {
-        color: var(--highlight);
-        border: 1px solid var(--border);
-        border-radius: 4px;
-        background: transparent;
-        cursor: pointer;
-
-        &:hover {
-          background-color: var(--border);
-        }
-
-        &:active {
-          border-color: var(--highlight);
-        }
-      }
-    }
-  </style>
+  <title>TabTools</title>
+  <link rel="stylesheet" href="./style.css">
 </head>
 
 <body>
-  <button id="btnCopySelectedTabs">Copy selected tab's links</button>
-  <button id="btnOpenTabsFromClipboard">Open tabs from clipboard</button>
-  <button id="btnDiscardAllTabs">Discard all tabs</button>
-  <button id="btnDiscardSelectedTabs">Discard selected tabs</button>
-
-  <!-- <button id="btn"></button> -->
-
-  <div id="content"></div>
-
   <script src="sidepanel.js" type="module"></script>
 </body>
 

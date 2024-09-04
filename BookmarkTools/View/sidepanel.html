@@ -3,54 +3,10 @@
 
 <head>
   <title>My Sidepanel</title>
-  <style>
-    @import url("./variables.css");
-
-    body {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    button {
-      font-size: 16px;
-      height: 50px;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      body {
-        color: var(--color);
-        background: var(--background);
-      }
-
-      button {
-        color: var(--highlight);
-        border: 1px solid var(--border);
-        border-radius: 4px;
-        background: transparent;
-        cursor: pointer;
-
-        &:hover {
-          background-color: var(--border);
-        }
-
-        &:active {
-          border-color: var(--highlight);
-        }
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="./style.css">
 </head>
 
 <body>
-  <h2>Bookmarks</h2>
-  <button id="btnSaveToInbox">Save to Inbox and close</button>
-  <button id="btnSaveToInboxFromClipboard">Save to Inbox from clipboard</button>
-  
-  <!-- <button id="btn"></button> -->
-
-  <div id="content"></div>
-
   <script src="sidepanel.js" type="module"></script>
 </body>
 

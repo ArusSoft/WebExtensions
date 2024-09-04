@@ -4,10 +4,11 @@
     "description": "Tools to make work with bookmarks easier.",
     "version": "24.08.09",
     "icons": {
-        "16": "icon-48.png",
-        "32": "icon-48.png",
-        "48": "icon-48.png",
-        "128": "icon-48.png"
+        "16": "favicon.png",
+        "32": "favicon.png",
+        "48": "favicon.png",
+        "128": "favicon.png",
+        "256": "favicon.png"
     },
     "background": {
         "service_worker": "service-worker.js",
@@ -21,7 +22,8 @@
         "sessions",
         "sidePanel",
         "clipboardRead",
-        "clipboardWrite"
+        "clipboardWrite",
+        "history"
     ],
     "action": {
         "default_title": "Click to open panel"

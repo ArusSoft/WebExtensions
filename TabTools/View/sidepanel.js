@@ -1,107 +1,136 @@
 // @ts-check
 /// <reference path='../index.d.ts' />
 
-import { onBtnClick, factory } from '../Runtime/dom.js';
-import { getCurrentTab, getHighlightedTabs } from '../Runtime/webExtension.js';
-import { getUrlFromString } from '../Runtime/url.js';
+import { createButton, createGroup, createRadioGroup } from '../Runtime/dom.js';
+import { getHighlightedTabs } from '../Runtime/webExtension.js';
+import { getUrlsFromString } from '../Runtime/url.js';
+import { escapeHtml } from '../Runtime/string.js';
 
-onBtnClick("btnCopySelectedTabs", async () => {
-    const tabs = await getHighlightedTabs();
-    const type = "text/plain";
-    await navigator.clipboard.write([
-        new ClipboardItem({ [type]: new Blob([tabs.map(({ url }) => url).join('\n')], { type }) })
-    ]);
-});
-onBtnClick("btnOpenTabsFromClipboard", async () => {
-    const text = await navigator.clipboard.readText();
-    const urls = text.split('\n').filter(getUrlFromString);
-    urls.forEach(url => chrome.tabs.create({ url }));
-});
-onBtnClick("btnDiscardAllTabs", async () => {
-    const allTabs = await chrome.tabs.query({});
-    allTabs.forEach(tab => !tab.discarded && chrome.tabs.discard(tab.id));
-});
-onBtnClick("btnDiscardSelectedTabs", async () => {
-    const tabs = await getHighlightedTabs();
-    tabs.forEach(tab => !tab.discarded && chrome.tabs.discard(tab.id));
-});
+/*
+    createButton("", async () => {
 
-// let options = {
-//     type: 'progress',
-//     title: 'Progress Notification',
-//     message: 'This is a Progress Notification',
-//     iconUrl: 'icon.png',
-//     progress: 99
-// };
-// chrome.notifications.create({
-//     type: 'basic',
-//     title: 'Hello',
-//     message: 'Notification from extension',
-//     iconUrl: 'icon.png',
-// });
+    }),
+*/
 
-// WORK ONLY IN CHROME (not in chromium)
-// chrome.tts.speak("Hello MinskJS!");
+const nl = '\n';
 
-// onBtnClick("btnScripting", async () => {
-//     const tabId = (await getCurrentTab()).id;
+const copyContentTypeRadioGroup = createRadioGroup([
+    { label: 'Url per line', value: 'urlPerLine' },
+    { label: 'Markdown', value: 'markdown' },
+    { label: 'HTML', value: 'html' },
+    { label: 'JSON', value: 'json' },
+], 'urlPerLine');
 
-//     if (tabId) {
+const copySelectedRadioGroup = createRadioGroup([
+    { label: 'Selected', value: 'selected' },
+    { label: 'All', value: 'all' },
+], 'selected');
 
-//         await chrome.scripting
-//             .executeScript({
-//                 target: { tabId: (await getCurrentTab()).id },
-//                 func: async () => {
-//                     // document.body.style.backgroundColor = 'red';
-//                     // console.log('test');
+const clipboardGroup = createGroup('Clipboard');
+clipboardGroup.append(
+    createButton("Open", async () => {
+        const text = await navigator.clipboard.readText();
+        const urls = getUrlsFromString(text);
 
-//                     const headers = Array.from(document.querySelectorAll("h1, h2, h3, h4, h5, h6, [role='heading']"))
+        urls.forEach(url => chrome.tabs.create({ url }));
+    }),
 
-//                     // change style
-//                     // headers.forEach(node => { node.style.background = 'red' })
+    createButton("Copy", async () => {
+        const contentType = copyContentTypeRadioGroup.getSelectedValue();
+        const onlySelected = copySelectedRadioGroup.getSelectedValue() === 'selected';
+        const tabs = onlySelected ? await getHighlightedTabs() : await chrome.tabs.query({});
+        const type = "text/plain";
+        let content = '';
 
-//                     // get tag and inner text
-//                     // const text = headers.map(node => node.tagName + ' ' + node.innerText).join();
+        const tabToMarkdown = (/** @type {chrome.tabs.Tab} */ { title, url }) => `[${title}](${url})`;
+        const tabToHtml = (/** @type {chrome.tabs.Tab} */ { title, url }) => `<a href="${url}">${escapeHtml(title)}</a>`;
+        const tabToJson = (/** @type {chrome.tabs.Tab} */ { title, url }) => `{title: '${title}', url: '${url}'}`;
 
-//                     const response = await chrome.runtime.sendMessage(headers.map(({ tagName, innerText }) => ({ tagName, innerText })));
-//                     console.log(response);
-//                 },
-//             });
+        if (contentType === 'urlPerLine')
+            content = tabs.map(({ url }) => url).join('\n');
 
-//         await chrome.scripting.insertCSS({ css: highlightHeaderStyle, target: { tabId } })
-//         // await chrome.scripting.removeCSS({ css: highlightHeaderStyle, target: { tabId } })
-//     }
+        if (onlySelected)
+            switch (contentType) {
+                case 'markdown':
+                    content = tabs.map(tabToMarkdown).join('\n');
+                    break;
+                case 'html':
+                    content = tabs.map(tabToHtml).join('\n');
+                    break;
+                case 'json':
+                    content = tabs.map(tabToJson).join('\n');
+                    break;
+            }
+        else {
+            const /** @type {Record<string, string>} */ groups = (await chrome.tabGroups.query({})).reduce((res, group) => {
+                res[group.id] = group.title;
+                return res;
+            }, {});
 
-// });
+            const result = tabs.reduce((res, tab) => {
+                const group = groups[tab.groupId];
 
-// chrome.runtime.onMessage.addListener(
-//     (request, sender, sendResponse) => {
-//         //   console.log(sender.tab ?
-//         //               "from a content script:" + sender.tab.url :
-//         //               "from the extension");
-//         treeElm.innerHTML = request.map(node => `<li>${node.innerText}</li>`);
-//         //   sendResponse('well done');
-//     }
-// );
+                if (group) {
+                    let groupTabs = res.groups[tab.groupId];
+                    if (!groupTabs) {
+                        groupTabs = [];
+                        res.groups[tab.groupId] = groupTabs;
+                    }
+                    groupTabs.push(tab);
+                } else {
+                    res.tabs.push(tab);
+                }
 
-// const highlightHeaderStyle = `
-// h1, h2, h3, h4, h5, h6, [role='heading'] {
-//     border-bottom: 1px solid red !important;
-// }
+                return res;
+            }, {
+                groups: {},
+                tabs: [],
+            });
 
-// h1:before {content: 'h1';}
-// h2:before {content: 'h2';}
-// h3:before {content: 'h3';}
-// h4:before {content: 'h4';}
-// h5:before {content: 'h5';}
-// h6:before {content: 'h6';}
-// [role='heading']:before {content: 'header';}
+            switch (contentType) {
+                case 'markdown':
+                    content = Object.entries(result.groups).map(([id, tabs]) => {
+                        const title = groups[id];
+                        const links = tabs.map(tabToMarkdown).join('\n');
+                        return `## ${title}${nl}${nl}${links}${nl}`
+                    }).join(nl + nl) + nl + nl + result.tabs.map(tabToMarkdown).join(nl);
+                    break;
+                case 'html':
+                    content = Object.entries(result.groups).map(([id, tabs]) => {
+                        const title = groups[id];
+                        const links = tabs.map(tabToHtml).join('\n  ');
+                        return `<section>${nl}  <h2>${title}</h2>${nl}  ${links}${nl}</section>`
+                    }).join(nl + nl) + nl + nl + result.tabs.map(tabToHtml).join(nl);
+                    break;
+                case 'json':
+                    content = Object.entries(result.groups).map(([id, tabs]) => {
+                        const title = groups[id];
+                        const links = tabs.map(tabToJson).join(',' + nl + '    ');
+                        return `{${nl}  group: '${title}',${nl}  tabs: [${nl}    ${links}${nl}  ]${nl}}`;
+                    }).join(',' + nl + nl) + nl + nl + result.tabs.map(tabToJson).join(',' + nl);
+                    break;
+            }
+        }
 
-// h1:before, h2:before, h3:before, h4:before, h5:before, h6:before, [role='heading']:before {
-//     color: white;
-//     background: red;
-// }
+        await navigator.clipboard.write([
+            new ClipboardItem({ [type]: new Blob([content], { type }) })
+        ]);
+    }),
 
-// `;
+    copyContentTypeRadioGroup.element,
+    copySelectedRadioGroup.element,
+);
 
+const discardGroup = createGroup('Discard');
+discardGroup.append(
+    createButton("Discard all tabs", async () => {
+        const allTabs = await chrome.tabs.query({});
+        allTabs.forEach(tab => !tab.discarded && chrome.tabs.discard(tab.id));
+    }),
+    createButton("Discard selected tabs", async () => {
+        const tabs = await getHighlightedTabs();
+        tabs.forEach(tab => !tab.discarded && chrome.tabs.discard(tab.id));
+    }),
+);
 
+document.body.append(clipboardGroup, discardGroup);
